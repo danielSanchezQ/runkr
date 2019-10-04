@@ -10,25 +10,38 @@ use json_rpc_client::protocol::{
     build_rpcjson_message, parse_rpcjson_response, JsonProtocolResponse,
 };
 use regex::Regex;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
+// Supported Bunkr JSON RPC protocol version
 const BUNKR_JSON_PROTOCOL_VERSION: &str = "1.0";
+// Main Bunkr RPC method
 const BUNKR_RPC_METHOD: &str = "CommandProxy.HandleCommand";
 
+// Hashmap to reference the results parsing method
+// Bunkr operations return strings containing different results, in order to use them
+// usually is better to parse those results into proper objects
 lazy_static! {
     static ref FMT_COMMANDS: HashMap<&'static str, Regex> = {
-        let mut m: HashMap<&'static str, Regex> = HashMap::new();
-        m.insert("access", Regex::new(r"Secret content: ([^\n]*)\n").unwrap());
+        let m: HashMap<&'static str, Regex> = HashMap::new();
         m
     };
 }
 
+// Bunkr result object that comes embedded in the response JSON RPC messages
 #[derive(Deserialize, Debug)]
 struct BunkrResult {
+    #[serde(rename = "Result")]
     result: String,
+    #[serde(rename = "Error")]
     error: String,
 }
 
+#[derive(Serialize, Debug)]
+struct OperationArgs {
+    line: String,
+}
+
+// Main Bunkr client
 pub struct Runkr {
     client: JSONRPCClient,
 }
@@ -40,13 +53,12 @@ impl Runkr {
         }
     }
 
-    pub fn handle_response(self, command_name: &str, response: String) -> Result<String, String> {
+    // Get stream response message and parse the result of the operation if it was successful
+    fn handle_response(&mut self, command_name: &str, response: String) -> Result<String, String> {
         match parse_rpcjson_response::<JsonProtocolResponse<BunkrResult>>(response.as_str()) {
-            Ok(bunkr_result) => {
-                if bunkr_result.error != "" {
-                    if bunkr_result.result.error != "" {
-                        return Err(bunkr_result.result.error);
-                    }
+            Ok(bunkr_result) => match bunkr_result.error {
+                Some(err) => return Err(err),
+                None => {
                     let res = bunkr_result.result.result;
                     match FMT_COMMANDS.get(command_name) {
                         Some(fmt_result) => match fmt_result.captures(res.as_str()) {
@@ -56,29 +68,113 @@ impl Runkr {
                         _ => return Ok(res),
                     }
                 }
-                return Err(bunkr_result.error);
-            }
-            Err(_) => Err("Error parsing response".to_string()),
+            },
+            Err(e) => Err(format!("Error parsing response: {}", e)),
         }
     }
 
-    pub fn exec_command(
-        self,
-        client: &mut JSONRPCClient,
+    // Send a command to the Bunkr JSON RPC server
+    fn exec_command(
+        &mut self,
         command_name: &'static str,
-        command: String,
+        command: &str,
     ) -> Result<String, String> {
+        // Build the message to be sent
         let message = build_rpcjson_message(
             BUNKR_JSON_PROTOCOL_VERSION.to_string(),
             BUNKR_RPC_METHOD.to_string(),
-            vec![format!("\"Line\": \"{command}\"", command = command)],
+            vec![OperationArgs {
+                line: command.to_string(),
+            }],
         );
-        if !client.is_connected() {
-            client.connect()?;
+        if !self.client.is_connected() {
+            self.client.connect()?;
         }
-        match client.send(message) {
-            Ok(response) => self.handle_response(command_name, response),
-            Err(err) => Err(err),
+        match self.client.send(message) {
+            Ok(response) => {
+                match self.client.disconnect() {
+                    _ => {}
+                }
+                return self.handle_response(command_name, response);
+            }
+            Err(err) => {
+                match self.client.disconnect() {
+                    _ => {}
+                }
+                return Err(err);
+            }
+        };
+    }
+
+    pub fn new_text_secret(&mut self, secret_name: &str, content: &str) -> Result<String, String> {
+        let command = format!("new-text-secret {} {}", secret_name, content,);
+        self.exec_command("new-text-secret", &command)
+    }
+
+    pub fn create(&mut self, secret_name: &str, secret_type: &str) -> Result<String, String> {
+        let command = format!("create {} {}", secret_name, secret_type,);
+        self.exec_command("create", &command)
+    }
+
+    pub fn access(&mut self, secret_name: &str) -> Result<String, String> {
+        let command = format!("access {}", secret_name);
+        self.exec_command("access", &command)
+    }
+
+    pub fn delete(&mut self, secret_name: &str) -> Result<String, String> {
+        let command = format!("delete {}", secret_name);
+        self.exec_command("delete", &command)
+    }
+
+    pub fn sign_ecdsa(&mut self, secret_name: &str, hash_content: &str) -> Result<String, String> {
+        let command = format!("sign-ecdsa {} {}", secret_name, hash_content);
+        self.exec_command("sign-ecdsa", &command)
+    }
+
+    pub fn new_group(&mut self, group_name: &str) -> Result<String, String> {
+        let command = format!("new-group {}", group_name);
+        self.exec_command("new-group", &command)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::prelude::*;
+    use std::os::unix::net::{UnixListener, UnixStream};
+    use std::thread;
+
+    const TMP_SOCK: &str = "/tmp/rust-uds.sock";
+    fn mock_server(response: String) {
+        let listener = UnixListener::bind(TMP_SOCK).unwrap();
+        match listener.accept() {
+            Ok((mut stream, socket_addr)) => loop {
+                let mut buff = [0 as u8; 1024];
+                let mut handle = stream.try_clone().unwrap().take(1024);
+                handle.read(&mut buff).unwrap();
+                let message = String::from_utf8(buff.to_vec())
+                    .unwrap()
+                    .trim_end_matches(char::from(0))
+                    .to_string();
+                stream.write_all(response.as_bytes()).unwrap();
+            },
+            Err(e) => println!("accept function failed: {:?}", e),
         }
+    }
+
+    #[test]
+    fn test_client() {
+        let response_message: JsonProtocolResponse<String> = JsonProtocolResponse {
+            id: uuid::Uuid::new_v4().to_string(),
+            result: "Foo".to_string(),
+            error: None,
+        };
+        let response = serde_json::to_string(&response_message).unwrap();
+        let t = thread::spawn(|| mock_server(response));
+        let mut runkr = Runkr::new(TMP_SOCK);
+        let res = runkr
+            .exec_command("create", "create foo foocontent")
+            .unwrap();
+        assert_eq!(res, "Foo");
     }
 }

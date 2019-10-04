@@ -2,6 +2,7 @@ use std::io::prelude::*;
 use std::net::Shutdown;
 use std::os::unix::net::UnixStream;
 
+// Simple Json RPC client over unix sockets, protocol version agnostic
 pub struct JSONRPCClient {
     address: String,
     stream: Option<UnixStream>,
@@ -65,7 +66,9 @@ impl JSONRPCClient {
                     }
                     let mut buff = [0 as u8; 1024];
                     let mut handle = stream.take(1024);
-                    handle.read(&mut buff);
+                    match handle.read(&mut buff) {
+                        _ => {}
+                    }
                     match String::from_utf8(buff.to_vec()) {
                         Ok(result) => {
                             return Ok(result.trim_end_matches(char::from(0)).to_string())
@@ -89,6 +92,7 @@ impl JSONRPCClient {
 mod tests {
     use crate::json_rpc_client::client::JSONRPCClient;
     use crate::json_rpc_client::protocol::build_rpcjson_message;
+    use std::fs::File;
     use std::io::prelude::*;
     use std::io::{BufRead, BufReader};
     use std::net::Shutdown;
@@ -119,6 +123,7 @@ mod tests {
     fn test_client() {
         let sock = "/tmp/rust-uds.sock";
         println!("Launching ping");
+        // spawn a new thread with the mocked server
         let t = thread::spawn(|| ping());
         let content = "{\"Line\": \"access foo\"}";
         let message = build_rpcjson_message(
@@ -130,31 +135,18 @@ mod tests {
         let mut client = JSONRPCClient::new(sock);
         println!("Connecting to {}", sock);
         client.connect().unwrap();
+        // client should connect
         assert!(client.is_connected());
         println!("Sending message {}", message);
         let result = client.send(message.clone()).unwrap();
         assert_eq!(result, message);
+        // client should still be connected
         assert!(client.is_connected());
         let result2 = client.send("foo".to_string()).unwrap();
         assert_eq!(result2, "foo".to_string());
         println!("Disconnecting");
         client.disconnect().unwrap();
-    }
-
-    #[test]
-    fn streams() {
-        use std::io::prelude::*;
-        use std::net::Shutdown;
-        use std::os::unix::net::UnixStream;
-        use std::time::Duration;
-
-        let (mut s1, mut s2) = UnixStream::pair().unwrap();
-        s1.write_all(b"hello world").unwrap();
-        let mut buff = [0; 1024];
-        let mut h = s2.take(1024);
-        h.read(&mut buff);
-        let mut response = String::from_utf8(buff.to_vec()).unwrap();
-        let res = response.trim_end_matches(char::from(0));
-        assert_eq!("hello world".to_string(), res);
+        // client should be disconnected
+        assert!(!client.is_connected());
     }
 }
