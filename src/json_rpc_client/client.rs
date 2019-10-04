@@ -92,17 +92,18 @@ impl JSONRPCClient {
 mod tests {
     use crate::json_rpc_client::client::JSONRPCClient;
     use crate::json_rpc_client::protocol::build_rpcjson_message;
-    use std::fs::File;
+    use std::fs::remove_file;
     use std::io::prelude::*;
-    use std::io::{BufRead, BufReader};
     use std::net::Shutdown;
     use std::os::unix::net::{UnixListener, UnixStream};
+    use std::sync::mpsc::{self, TryRecvError};
     use std::thread;
 
     fn ping() {
-        let listener = UnixListener::bind("/tmp/rust-uds.sock").unwrap();
+        let sock_addr = "/tmp/rust-uds.sock";
+        let listener = UnixListener::bind(sock_addr).unwrap();
         match listener.accept() {
-            Ok((mut stream, socket_addr)) => loop {
+            Ok((mut stream, _)) => loop {
                 let mut buff = [0 as u8; 1024];
                 println!("Reading");
                 let mut handle = stream.try_clone().unwrap().take(1024);
@@ -114,9 +115,13 @@ mod tests {
                 println!("Got message: {}", message.clone());
                 println!("Writing");
                 stream.write_all(message.as_bytes()).unwrap();
+                if message == "end" {
+                    break;
+                }
             },
             Err(e) => println!("accept function failed: {:?}", e),
         }
+        remove_file(sock_addr).unwrap();
     }
 
     #[test]
@@ -124,7 +129,7 @@ mod tests {
         let sock = "/tmp/rust-uds.sock";
         println!("Launching ping");
         // spawn a new thread with the mocked server
-        let t = thread::spawn(|| ping());
+        let t = thread::spawn(move || ping());
         let content = "{\"Line\": \"access foo\"}";
         let message = build_rpcjson_message(
             "1.0".to_string(),
@@ -145,8 +150,11 @@ mod tests {
         let result2 = client.send("foo".to_string()).unwrap();
         assert_eq!(result2, "foo".to_string());
         println!("Disconnecting");
+        // closing mock
+        client.send("end".to_string());
         client.disconnect().unwrap();
         // client should be disconnected
         assert!(!client.is_connected());
+        t.join();
     }
 }

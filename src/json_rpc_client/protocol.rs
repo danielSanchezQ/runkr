@@ -6,10 +6,10 @@ use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonProtocolMessage<T> {
-    version: String,
-    method: String,
-    params: vec::Vec<T>,
-    id: String,
+    pub version: String,
+    pub method: String,
+    pub params: vec::Vec<T>,
+    pub id: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -46,7 +46,6 @@ where
 mod tests {
     use super::*;
     use crate::json_rpc_client::protocol::build_rpcjson_message;
-    use std::collections::HashMap;
 
     #[test]
     fn test_build_message() {

@@ -1,10 +1,11 @@
 [package]
 name = "runkr"
 version = "0.1.0"
-authors = ["danielsanchezq <danielsanchez@off-the-grid.io>"]
+authors = ["danielsanchezq <danielsanchez@bunkr.app>"]
 edition = "2018"
+license = "MIT"
+repository = "https://github.com/danielsanchezq/runkr"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 serde = { version = "1.*", features = ["derive"] }

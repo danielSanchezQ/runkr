@@ -28,7 +28,7 @@ lazy_static! {
 }
 
 // Bunkr result object that comes embedded in the response JSON RPC messages
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct BunkrResult {
     #[serde(rename = "Result")]
     result: String,
@@ -36,7 +36,7 @@ struct BunkrResult {
     error: String,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct OperationArgs {
     line: String,
 }
@@ -107,13 +107,18 @@ impl Runkr {
     }
 
     pub fn new_text_secret(&mut self, secret_name: &str, content: &str) -> Result<String, String> {
-        let command = format!("new-text-secret {} {}", secret_name, content,);
+        let command = format!(r#"new-text-secret {} "{}""#, secret_name, content);
         self.exec_command("new-text-secret", &command)
     }
 
     pub fn create(&mut self, secret_name: &str, secret_type: &str) -> Result<String, String> {
-        let command = format!("create {} {}", secret_name, secret_type,);
+        let command = format!("create {} {}", secret_name, secret_type);
         self.exec_command("create", &command)
+    }
+
+    pub fn write(&mut self, secret_name: &str, content: &str) -> Result<String, String> {
+        let command = format!(r#"write {} "{}""#, secret_name, content);
+        self.exec_command("write", &command)
     }
 
     pub fn access(&mut self, secret_name: &str) -> Result<String, String> {
@@ -135,20 +140,27 @@ impl Runkr {
         let command = format!("new-group {}", group_name);
         self.exec_command("new-group", &command)
     }
+
+    pub fn grant(&mut self, device_name: &str, group_name: &str) -> Result<String, String> {
+        let command = format!("grant {} {}", device_name, group_name);
+        self.exec_command("grant", &command)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::json_rpc_client::protocol::JsonProtocolMessage;
+    use std::fs::remove_file;
     use std::io::prelude::*;
     use std::os::unix::net::{UnixListener, UnixStream};
     use std::thread;
 
-    const TMP_SOCK: &str = "/tmp/rust-uds.sock";
+    const TMP_SOCK: &str = "/tmp/punkr.sock";
     fn mock_server(response: String) {
         let listener = UnixListener::bind(TMP_SOCK).unwrap();
         match listener.accept() {
-            Ok((mut stream, socket_addr)) => loop {
+            Ok((mut stream, _)) => loop {
                 let mut buff = [0 as u8; 1024];
                 let mut handle = stream.try_clone().unwrap().take(1024);
                 handle.read(&mut buff).unwrap();
@@ -156,25 +168,38 @@ mod tests {
                     .unwrap()
                     .trim_end_matches(char::from(0))
                     .to_string();
+                println!("Received message: {}", message);
+                let message: JsonProtocolMessage<OperationArgs> =
+                    serde_json::from_str(message.as_str()).unwrap();
                 stream.write_all(response.as_bytes()).unwrap();
+                if message.params[0].line == "end" {
+                    break;
+                }
             },
             Err(e) => println!("accept function failed: {:?}", e),
         }
+        remove_file(TMP_SOCK).unwrap();
     }
 
     #[test]
-    fn test_client() {
-        let response_message: JsonProtocolResponse<String> = JsonProtocolResponse {
+    fn test_punkr_client() {
+        let response_message: JsonProtocolResponse<BunkrResult> = JsonProtocolResponse {
             id: uuid::Uuid::new_v4().to_string(),
-            result: "Foo".to_string(),
+            result: BunkrResult {
+                result: "Foo".to_string(),
+                error: "".to_string(),
+            },
             error: None,
         };
         let response = serde_json::to_string(&response_message).unwrap();
-        let t = thread::spawn(|| mock_server(response));
+        let t = thread::spawn(move || mock_server(response));
+        thread::sleep(time::Duration::from_millis(500));
         let mut runkr = Runkr::new(TMP_SOCK);
         let res = runkr
             .exec_command("create", "create foo foocontent")
             .unwrap();
-        assert_eq!(res, "Foo");
+        assert_eq!(res, "Foo".to_string());
+        runkr.exec_command("", "end");
+        t.join();
     }
 }
