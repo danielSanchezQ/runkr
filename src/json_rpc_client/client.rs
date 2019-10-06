@@ -126,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_client() {
-        let sock = "/tmp/rust-uds.sock";
+        let sock = "./rust-uds.sock";
         println!("Launching ping");
         // spawn a new thread with the mocked server
         let t = thread::spawn(move || ping());

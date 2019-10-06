@@ -157,7 +157,7 @@ mod tests {
     use std::os::unix::net::{UnixListener, UnixStream};
     use std::thread;
 
-    const TMP_SOCK: &str = "/tmp/punkr.sock";
+    const TMP_SOCK: &str = "./punkr.sock";
     fn mock_server(response: String) {
         let listener = UnixListener::bind(TMP_SOCK).unwrap();
         match listener.accept() {
