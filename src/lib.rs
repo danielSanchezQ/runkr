@@ -38,6 +38,7 @@ struct BunkrResult {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct OperationArgs {
+    #[serde(rename = "Line")]
     line: String,
 }
 
@@ -193,7 +194,6 @@ mod tests {
         };
         let response = serde_json::to_string(&response_message).unwrap();
         let t = thread::spawn(move || mock_server(response));
-        thread::sleep(time::Duration::from_millis(500));
         let mut runkr = Runkr::new(TMP_SOCK);
         let res = runkr
             .exec_command("create", "create foo foocontent")
