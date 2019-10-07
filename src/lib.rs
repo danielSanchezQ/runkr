@@ -195,6 +195,7 @@ mod tests {
         };
         let response = serde_json::to_string(&response_message).unwrap();
         let t = thread::spawn(move || mock_server(response));
+        // Wait a bit for server to start
         let milis = time::Duration::from_millis(500);
         thread::sleep(milis);
         let mut runkr = Runkr::new(TMP_SOCK);

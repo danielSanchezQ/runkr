@@ -98,6 +98,7 @@ mod tests {
     use std::os::unix::net::{UnixListener, UnixStream};
     use std::sync::mpsc::{self, TryRecvError};
     use std::thread;
+    use std::time;
 
     const TMP_SOCK: &str = "/tmp/cli.sock";
 
@@ -129,6 +130,9 @@ mod tests {
         println!("Launching ping");
         // spawn a new thread with the mocked server
         let t = thread::spawn(move || ping());
+        // Wait a bit for server to start
+        let milis = time::Duration::from_millis(500);
+        thread::sleep(milis);
         let content = "{\"Line\": \"access foo\"}";
         let message = build_rpcjson_message(
             "1.0".to_string(),
