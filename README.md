@@ -1,7 +1,7 @@
 # Runkr
 
 [![Build Status](https://travis-ci.org/danielSanchezQ/runkr.svg?branch=master)](https://travis-ci.org/danielSanchezQ/runkr)
-
+[![Docs](https://docs.rs/runkr/badge.svg)](https://docs.rs/runkr)
 
 Runkr is a Rust [Bunkr](https://bunkr.app) client. You can find all the Bunkr related information [here](https://github.com/off-the-grid-inc/bunkr)
 
