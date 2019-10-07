@@ -157,7 +157,7 @@ mod tests {
     use std::os::unix::net::{UnixListener, UnixStream};
     use std::thread;
 
-    const TMP_SOCK: &str = "./punkr.sock";
+    const TMP_SOCK: &str = "/tmp/punk.sock";
     fn mock_server(response: String) {
         let listener = UnixListener::bind(TMP_SOCK).unwrap();
         match listener.accept() {
@@ -172,14 +172,14 @@ mod tests {
                 println!("Received message: {}", message);
                 let message: JsonProtocolMessage<OperationArgs> =
                     serde_json::from_str(message.as_str()).unwrap();
-                stream.write_all(response.as_bytes()).unwrap();
                 if message.params[0].line == "end" {
                     break;
                 }
+                stream.write_all(response.as_bytes());
             },
-            Err(e) => println!("accept function failed: {:?}", e),
+            Err(e) => println!("Accept function failed: {:?}", e),
         }
-        remove_file(TMP_SOCK).unwrap();
+        listener.remove_file(TMP_SOCK);
     }
 
     #[test]
