@@ -156,8 +156,10 @@ mod tests {
     use std::io::prelude::*;
     use std::os::unix::net::{UnixListener, UnixStream};
     use std::thread;
+    use std::time;
 
     const TMP_SOCK: &str = "/tmp/punkr.sock";
+
     fn mock_server(response: String) {
         let listener = UnixListener::bind(TMP_SOCK).unwrap();
         match listener.accept() {
@@ -172,14 +174,13 @@ mod tests {
                 println!("Received message: {}", message);
                 let message: JsonProtocolMessage<OperationArgs> =
                     serde_json::from_str(message.as_str()).unwrap();
-                stream.write_all(response.as_bytes()).unwrap();
                 if message.params[0].line == "end" {
                     break;
                 }
+                stream.write_all(response.as_bytes()).unwrap();
             },
             Err(e) => println!("accept function failed: {:?}", e),
         }
-        remove_file(TMP_SOCK).unwrap();
     }
 
     #[test]
@@ -194,6 +195,9 @@ mod tests {
         };
         let response = serde_json::to_string(&response_message).unwrap();
         let t = thread::spawn(move || mock_server(response));
+        // Wait a bit for server to start
+        let milis = time::Duration::from_millis(500);
+        thread::sleep(milis);
         let mut runkr = Runkr::new(TMP_SOCK);
         let res = runkr
             .exec_command("create", "create foo foocontent")
@@ -201,5 +205,6 @@ mod tests {
         assert_eq!(res, "Foo".to_string());
         runkr.exec_command("", "end");
         t.join();
+        remove_file(TMP_SOCK).unwrap();
     }
 }

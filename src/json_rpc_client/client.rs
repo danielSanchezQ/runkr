@@ -98,10 +98,12 @@ mod tests {
     use std::os::unix::net::{UnixListener, UnixStream};
     use std::sync::mpsc::{self, TryRecvError};
     use std::thread;
+    use std::time;
+
+    const TMP_SOCK: &str = "/tmp/cli.sock";
 
     fn ping() {
-        let sock_addr = "/tmp/rust-uds.sock";
-        let listener = UnixListener::bind(sock_addr).unwrap();
+        let listener = UnixListener::bind(TMP_SOCK).unwrap();
         match listener.accept() {
             Ok((mut stream, _)) => loop {
                 let mut buff = [0 as u8; 1024];
@@ -113,23 +115,24 @@ mod tests {
                     .trim_end_matches(char::from(0))
                     .to_string();
                 println!("Got message: {}", message.clone());
-                println!("Writing");
-                stream.write_all(message.as_bytes()).unwrap();
                 if message == "end" {
                     break;
                 }
+                println!("Writing");
+                stream.write_all(message.as_bytes()).unwrap();
             },
             Err(e) => println!("accept function failed: {:?}", e),
         }
-        remove_file(sock_addr).unwrap();
     }
 
     #[test]
     fn test_client() {
-        let sock = "/tmp/rust-uds.sock";
         println!("Launching ping");
         // spawn a new thread with the mocked server
         let t = thread::spawn(move || ping());
+        // Wait a bit for server to start
+        let milis = time::Duration::from_millis(500);
+        thread::sleep(milis);
         let content = "{\"Line\": \"access foo\"}";
         let message = build_rpcjson_message(
             "1.0".to_string(),
@@ -137,8 +140,8 @@ mod tests {
             vec![content.to_string()],
         );
         println!("Creating client");
-        let mut client = JSONRPCClient::new(sock);
-        println!("Connecting to {}", sock);
+        let mut client = JSONRPCClient::new(TMP_SOCK);
+        println!("Connecting to {}", TMP_SOCK);
         client.connect().unwrap();
         // client should connect
         assert!(client.is_connected());
@@ -156,5 +159,6 @@ mod tests {
         // client should be disconnected
         assert!(!client.is_connected());
         t.join();
+        remove_file(TMP_SOCK).unwrap();
     }
 }
