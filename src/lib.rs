@@ -1,3 +1,8 @@
+///! Runkr is a lightweight library that enable communication with a running [Bunkr](bunkr.app)
+/// daemon through unix sockets. It is intended to use as a single object that abstract the
+/// available Bunkr operations.
+///
+///
 pub mod json_rpc_client;
 
 #[macro_use]
@@ -12,14 +17,13 @@ use json_rpc_client::protocol::{
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+
 // Supported Bunkr JSON RPC protocol version
 const BUNKR_JSON_PROTOCOL_VERSION: &str = "1.0";
 // Main Bunkr RPC method
 const BUNKR_RPC_METHOD: &str = "CommandProxy.HandleCommand";
 
-// Hashmap to reference the results parsing method
-// Bunkr operations return strings containing different results, in order to use them
-// usually is better to parse those results into proper objects
+// Bunkr supported commands
 pub enum Command {
     NEW_TEXT_SECRET,
     NEW_SSH_KEY,
@@ -121,6 +125,7 @@ impl FromStr for Command {
     }
 }
 
+// Bunkr supported secret types
 pub enum SecretType {
     ECDSASECP256k1Key,
     ECDSAP256Key,
@@ -156,6 +161,8 @@ impl FromStr for SecretType {
     }
 }
 
+// Secret content type
+// Used in some of the operations to specify the sent content format
 pub enum ContentType {
     B64,
     Text,
@@ -182,6 +189,10 @@ impl FromStr for ContentType {
     }
 }
 
+// Access operation mode
+// `B64` to retrieve the contenty bytes in b64 format
+// `Text` for plain string representation
+// `File` to dump content into a file
 pub enum AccessMode {
     B64,
     Text,
@@ -223,6 +234,7 @@ struct BunkrResult {
     error: String,
 }
 
+// Bunkr RPC object holding the command to be executed and a list with the needed command arguments
 #[derive(Serialize, Deserialize, Debug)]
 struct OperationArgs {
     #[serde(rename = "Command")]
@@ -295,6 +307,14 @@ impl Runkr {
         };
     }
 
+    /// new_text_secret creates and writes a secret
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn new_text_secret(
         &mut self,
         secret_name: &str,
@@ -306,10 +326,26 @@ impl Runkr {
         )
     }
 
+    /// new_ssh_key creates a new ecdsa key and stores it as a secret
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn new_ssh_key(&mut self, secret_name: &str) -> Result<Response, String> {
         self.exec_command(Command::NEW_SSH_KEY, vec![secret_name.to_string()])
     }
 
+    /// new_file_secret creates a secret with the content of an specified file
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn new_file_secret(
         &mut self,
         secret_name: &str,
@@ -321,10 +357,26 @@ impl Runkr {
         )
     }
 
+    /// new_group creates a new group
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn new_group(&mut self, group_name: &str) -> Result<Response, String> {
         self.exec_command(Command::NEW_GROUP, vec![group_name.to_string()])
     }
 
+    /// import_ssh_key uploads an ecdsa key to Bunkr
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn import_ssh_key(
         &mut self,
         secret_name: &str,
@@ -336,18 +388,65 @@ impl Runkr {
         )
     }
 
+    /// list_secrets retrieves Bunkr stored secret names and hierarchy
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg"     : "",
+    ///     "content" : {
+    ///         "secrets" : [string], # secrets names
+    ///         "devices" : {
+    ///             "<device name>" : [string], # secrets names
+    ///             ...
+    ///         },
+    ///         "groups" : {
+    ///             "<group name>" : [string], # secrets names
+    ///             ...
+    ///         },
+    ///     }
+    /// }
+    /// ```
     pub fn list_secrets(&mut self) -> Result<Response, String> {
         self.exec_command(Command::LIST_SECRETS, vec![])
     }
 
+    /// list_devices retrieves Bunkr attached devices
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///      "msg"     : "",
+    ///      "devices" : [string] # devices names
+    /// }
+    /// ```
     pub fn list_devices(&mut self) -> Result<Response, String> {
         self.exec_command(Command::LIST_DEVICES, vec![])
     }
 
+    /// list_groups retrieves Bunkr attached devices
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///      "msg"     : "",
+    ///      "groups"  : [string] # group names
+    /// }
+    /// ```
     pub fn list_groups(&mut self) -> Result<Response, String> {
         self.exec_command(Command::LIST_GROUPS, vec![])
     }
 
+    /// send_device generates a device sharing link/s
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg"       : "<feedback message>",
+    ///     "url_raw"   : "<shared static url>",
+    ///     "url_short" : "<shared short url>",
+    /// }
+    /// ```
     pub fn send_device(&mut self, device_name: Option<&str>) -> Result<Response, String> {
         match device_name {
             Some(name) => self.exec_command(Command::SEND_DEVICE, vec![name.to_string()]),
@@ -355,18 +454,50 @@ impl Runkr {
         }
     }
 
+    /// receive_device links a links a new device to Bunkr
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn receive_device(&mut self, url: &str) -> Result<Response, String> {
         self.exec_command(Command::RECEIVE_DEVICE, vec![url.to_string()])
     }
 
+    /// remove_device removes a device link from Bunkr
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn remove_device(&mut self, device_name: &str) -> Result<Response, String> {
         self.exec_command(Command::REMOVE_DEVICE, vec![device_name.to_string()])
     }
 
+    /// remove_local removes a secret reference from Bunkr (it does not delete the secret)
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn remove_local(&mut self, secret_name: &str) -> Result<Response, String> {
         self.exec_command(Command::REMOVE_LOCAL, vec![secret_name.to_string()])
     }
 
+    /// rename a secret, group or device
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn rename(&mut self, old_name: &str, new_name: &str) -> Result<Response, String> {
         self.exec_command(
             Command::RENAME,
@@ -374,6 +505,14 @@ impl Runkr {
         )
     }
 
+    /// create a new secret
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn create(
         &mut self,
         secret_name: &str,
@@ -382,6 +521,15 @@ impl Runkr {
         self.exec_command(Command::CREATE, vec![secret_type.to_string()])
     }
 
+    /// write dumps content into the specified secret
+    /// If content_type is None, b64 mode is use by default
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn write(
         &mut self,
         secret_name: &str,
@@ -394,6 +542,17 @@ impl Runkr {
         }
     }
 
+    /// access the content of a secret
+    /// It can retrieve the content in plain text, b64 or dump it into a file
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///      "msg"       : "<feedback message>",
+    ///      "mode"      : "<access mode>"
+    ///      "content"   : "<secret content just for (b64 and text)>",
+    /// }
+    /// ```
     pub fn access(
         &mut self,
         secret_name: &str,
@@ -412,6 +571,16 @@ impl Runkr {
         }
     }
 
+    /// grant command shares a secret to a device or group
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg"       : "<feedback message>",
+    ///     "url_raw"   : "<shared static url>",
+    ///     "url_short" : "<shared short url>",
+    /// }
+    /// ```
     pub fn grant(
         &mut self,
         target: &str,
@@ -434,6 +603,14 @@ impl Runkr {
         }
     }
 
+    /// revoke command removes a capability from a secret to the specified device or group
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn revoke(&mut self, target: &str, secret_name: &str) -> Result<Response, String> {
         self.exec_command(
             Command::REVOKE,
@@ -441,26 +618,76 @@ impl Runkr {
         )
     }
 
+    /// delete specified secret
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn delete(&mut self, secret_name: &str) -> Result<Response, String> {
         self.exec_command(Command::DELETE, vec![secret_name.to_string()])
     }
 
+    /// receive_capability, load a capability into your Bunkr
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn receive_capability(&mut self, url: &str) -> Result<Response, String> {
         self.exec_command(Command::RECEIVE_CAPABILITY, vec![url.to_string()])
     }
 
+    /// reset_triples launches a reseting operation to synchronize the triples in a secret coalition
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn reset_triples(&mut self, secret_name: &str) -> Result<Response, String> {
         self.exec_command(Command::RESET_TRIPLES, vec![secret_name.to_string()])
     }
 
+    /// noop performs a health status operation
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn noop(&mut self, secret_name: &str) -> Result<Response, String> {
         self.exec_command(Command::NOOP, vec![secret_name.to_string()])
     }
 
+    /// secret_info return public secret info for the specified secret
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn secret_info(&mut self, secret_name: &str) -> Result<Response, String> {
         self.exec_command(Command::SECRET_INFO, vec![secret_name.to_string()])
     }
 
+    /// sign_ecdsa requests a signing with the specified secret content
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///      "msg" : "<feedback message>",
+    ///      "r"   : "<R component of the signature>",
+    ///      "s"   : "<S component of the signature>",
+    /// }
+    /// ```
     pub fn sign_ecdsa(
         &mut self,
         secret_name: &str,
@@ -472,10 +699,30 @@ impl Runkr {
         )
     }
 
+    /// ssh_public_data requests a signing with the specified secret content
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///    "msg"            : "<feedback message>",
+    ///    "public_data"    : {
+    ///        "name"       : "<secret name>",
+    ///        "public_key" : "<b64 encoded public key>",
+    ///    }
+    /// }
+    /// ```
     pub fn ssh_public_data(&mut self, secret_name: &str) -> Result<Response, String> {
         self.exec_command(Command::SSH_PUBLIC_DATA, vec![secret_name.to_string()])
     }
 
+    /// sigin performs a Bunkr signin process
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn signin(&mut self, email: &str, device_name: &str) -> Result<Response, String> {
         self.exec_command(
             Command::SIGNIN,
@@ -483,6 +730,14 @@ impl Runkr {
         )
     }
 
+    /// confirm_signin verifies the sigin verification code to access the Bunkr
+    /// ### Returns
+    /// json like object decoded into a Response object
+    /// ```json
+    /// {
+    ///     "msg" : "<feedback message>",
+    /// }
+    /// ```
     pub fn confirm_signin(&mut self, email: &str, code: &str) -> Result<Response, String> {
         self.exec_command(
             Command::CONFIRM_SIGNIN,
