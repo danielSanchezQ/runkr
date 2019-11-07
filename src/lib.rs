@@ -563,11 +563,18 @@ impl Runkr {
             AccessMode::File => match fpath {
                 Some(path) => self.exec_command(
                     Command::ACCESS,
-                    vec![AccessMode::File.to_string(), path.to_string()],
+                    vec![
+                        secret_name.to_string(),
+                        AccessMode::File.to_string(),
+                        path.to_string(),
+                    ],
                 ),
                 None => Err("A file path must be specified for File mode".to_string()),
             },
-            _ => self.exec_command(Command::ACCESS, vec![mode.to_string()]),
+            _ => self.exec_command(
+                Command::ACCESS,
+                vec![secret_name.to_string(), mode.to_string()],
+            ),
         }
     }
 
