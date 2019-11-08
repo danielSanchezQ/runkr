@@ -71,10 +71,10 @@ const BUNKR_RPC_METHOD: &str = "CommandProxy.HandleCommand";
 // Bunkr supported commands
 pub enum Command {
     NewTextSecret,
-    NewSshKey,
+    NewSSHKey,
     NewFileSecret,
     NewGroup,
-    ImportSshKey,
+    ImportSSHKey,
     ListSecrets,
     ListDevices,
     ListGroups,
@@ -93,8 +93,8 @@ pub enum Command {
     ResetTriples,
     NoOp,
     SecretInfo,
-    SignEcdsa,
-    SshPublicData,
+    SignECDSA,
+    SSHPublicData,
     SignIn,
     ConfirmSignin,
 }
@@ -103,10 +103,10 @@ impl Command {
     pub fn to_string(&self) -> String {
         let res = match self {
             Command::NewTextSecret => "new-text-secret",
-            Command::NewSshKey => "new-ssh-key",
+            Command::NewSSHKey => "new-ssh-key",
             Command::NewFileSecret => "new-file-secret",
             Command::NewGroup => "new-group",
-            Command::ImportSshKey => "import-ssh-key",
+            Command::ImportSSHKey => "import-ssh-key",
             Command::ListSecrets => "list-secrets",
             Command::ListDevices => "list-devices",
             Command::ListGroups => "list-groups",
@@ -125,8 +125,8 @@ impl Command {
             Command::ResetTriples => "reset-triples",
             Command::NoOp => "noop-test",
             Command::SecretInfo => "secret-info",
-            Command::SignEcdsa => "sign-ecdsa",
-            Command::SshPublicData => "ssh-public-data",
+            Command::SignECDSA => "sign-ecdsa",
+            Command::SSHPublicData => "ssh-public-data",
             Command::SignIn => "sigin",
             Command::ConfirmSignin => "confirm-signin",
         };
@@ -139,10 +139,10 @@ impl FromStr for Command {
     fn from_str(command: &str) -> Result<Self, Self::Err> {
         match command {
             "new-text-secret" => Ok(Command::NewTextSecret),
-            "new-ssh-key" => Ok(Command::NewSshKey),
+            "new-ssh-key" => Ok(Command::NewSSHKey),
             "new-file-secret" => Ok(Command::NewFileSecret),
             "new-group" => Ok(Command::NewGroup),
-            "import-ssh-key" => Ok(Command::ImportSshKey),
+            "import-ssh-key" => Ok(Command::ImportSSHKey),
             "list-secrets" => Ok(Command::ListSecrets),
             "list-devices" => Ok(Command::ListDevices),
             "list-groups" => Ok(Command::ListGroups),
@@ -161,8 +161,8 @@ impl FromStr for Command {
             "reset-triples" => Ok(Command::ResetTriples),
             "noop-test" => Ok(Command::NoOp),
             "secret-info" => Ok(Command::SecretInfo),
-            "sign-ecdsa" => Ok(Command::SignEcdsa),
-            "ssh-public-data" => Ok(Command::SshPublicData),
+            "sign-ecdsa" => Ok(Command::SignECDSA),
+            "ssh-public-data" => Ok(Command::SSHPublicData),
             "sigin" => Ok(Command::SignIn),
             "confirm-signin" => Ok(Command::ConfirmSignin),
             _ => Err("Command not supported"),
@@ -376,7 +376,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn new_ssh_key(&mut self, secret_name: &str) -> Result<Response, String> {
-        self.exec_command(Command::NewSshKey, vec![secret_name.to_string()])
+        self.exec_command(Command::NewSSHKey, vec![secret_name.to_string()])
     }
 
     /// new_file_secret creates a secret with the content of an specified file
@@ -424,7 +424,7 @@ impl Runkr {
         file_path: &str,
     ) -> Result<Response, String> {
         self.exec_command(
-            Command::ImportSshKey,
+            Command::ImportSSHKey,
             vec![secret_name.to_string(), file_path.to_string()],
         )
     }
@@ -755,7 +755,7 @@ impl Runkr {
         hash_content: &str,
     ) -> Result<Response, String> {
         self.exec_command(
-            Command::SignEcdsa,
+            Command::SignECDSA,
             vec![secret_name.to_string(), hash_content.to_string()],
         )
     }
@@ -773,7 +773,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn ssh_public_data(&mut self, secret_name: &str) -> Result<Response, String> {
-        self.exec_command(Command::SshPublicData, vec![secret_name.to_string()])
+        self.exec_command(Command::SSHPublicData, vec![secret_name.to_string()])
     }
 
     /// sigin performs a Bunkr signin process
