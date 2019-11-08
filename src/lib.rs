@@ -1,8 +1,59 @@
-///! Runkr is a lightweight library that enable communication with a running [Bunkr](bunkr.app)
-/// daemon through unix sockets. It is intended to use as a single object that abstract the
-/// available Bunkr operations.
-///
-///
+/*! Runkr is a lightweight library that enable communication with a running [Bunkr](bunkr.app)
+daemon through unix sockets. It is intended to use as a single object that abstract the
+available Bunkr operations.
+
+### Usage example:
+
+```rust
+extern crate runkr;
+
+use runkr::{Runkr, AccessMode};
+
+fn main() {
+    let mut runkr = Runkr::new("/tmp/bunkr_daemon.sock");
+    // Test basic creat/access/delete operation
+    runkr.new_text_secret("mySecret", "My secret content");
+    let secret_content = runkr.access("mySecret", AccessMode::Text, None).unwrap();
+    println!("{:?}", secret_content["content"].as_str());
+    let del_res = runkr.delete("mySecret");
+    match del_res {
+        Ok(_)  => println!("Operation success"),
+        Err(e) => println!("Error executing operation {}", e)
+    };
+
+    // Test groups and granting
+    runkr.new_group("ga").unwrap();
+    runkr.new_group("gb").unwrap();
+    runkr.new_group("gc").unwrap();
+    runkr.grant("ga", "gb", false).unwrap();
+    runkr.grant("gb", "gc", false).unwrap();
+
+    // Test rename and revoke
+    runkr.rename("ga", "gA").unwrap();
+    runkr.rename("gA", "ga").unwrap();
+    runkr.revoke("ga", "gb").unwrap();
+    runkr.revoke("gb", "gc").unwrap();
+    for &n in ["ga", "gb", "gc"].iter() {
+        runkr.delete(n).unwrap();
+    }
+
+    // Test ssh
+    runkr.new_ssh_key("test_ssh_key").unwrap();
+    let sign_res = runkr.sign_ecdsa("test_ssh_key", "Zm9v").unwrap();
+    println!("Signature, R: {}, S: {}", sign_res["r"], sign_res["s"]);
+
+    let ssh_public = runkr.ssh_public_data("test_ssh_key").unwrap();
+    println!("b64 public key: {}", ssh_public["public_data"]["public_key"]);
+    runkr.delete("test_ssh_key");
+
+    // Test send device
+    let device_result = runkr.send_device(None).unwrap();
+    println!("My device link: {}", device_result["url_raw"]);
+
+}
+```
+*/
+
 pub mod json_rpc_client;
 
 #[macro_use]
