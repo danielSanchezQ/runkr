@@ -64,8 +64,8 @@ impl JSONRPCClient {
                         Ok(_) => {}
                         Err(e) => return Err(format!("Error writing message: {}", e)),
                     }
-                    let mut buff = [0 as u8; 1024];
-                    let mut handle = stream.take(1024);
+                    let mut buff = [0 as u8; 2048];
+                    let mut handle = stream.take(2048);
                     match handle.read(&mut buff) {
                         _ => {}
                     }
