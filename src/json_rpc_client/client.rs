@@ -94,9 +94,7 @@ mod tests {
     use crate::json_rpc_client::protocol::build_rpcjson_message;
     use std::fs::remove_file;
     use std::io::prelude::*;
-    use std::net::Shutdown;
-    use std::os::unix::net::{UnixListener, UnixStream};
-    use std::sync::mpsc::{self, TryRecvError};
+    use std::os::unix::net::UnixListener;
     use std::thread;
     use std::time;
 
@@ -154,11 +152,11 @@ mod tests {
         assert_eq!(result2, "foo".to_string());
         println!("Disconnecting");
         // closing mock
-        client.send("end".to_string());
+        client.send("end".to_string()).unwrap_or_default();
         client.disconnect().unwrap();
         // client should be disconnected
         assert!(!client.is_connected());
-        t.join();
+        t.join().unwrap_or_default();
         remove_file(TMP_SOCK).unwrap();
     }
 }

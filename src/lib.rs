@@ -4,7 +4,7 @@ available Bunkr operations.
 
 ### Usage example:
 
-```rust
+```rust, no_run
 extern crate runkr;
 
 use runkr::{Runkr, AccessMode};
@@ -56,16 +56,10 @@ fn main() {
 
 pub mod json_rpc_client;
 
-#[macro_use]
-extern crate lazy_static;
-
-use std::collections::HashMap;
-
 use json_rpc_client::client::JSONRPCClient;
 use json_rpc_client::protocol::{
     build_rpcjson_message, parse_rpcjson_response, JsonProtocolResponse,
 };
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -76,65 +70,65 @@ const BUNKR_RPC_METHOD: &str = "CommandProxy.HandleCommand";
 
 // Bunkr supported commands
 pub enum Command {
-    NEW_TEXT_SECRET,
-    NEW_SSH_KEY,
-    NEW_FILE_SECRET,
-    NEW_GROUP,
-    IMPORT_SSH_KEY,
-    LIST_SECRETS,
-    LIST_DEVICES,
-    LIST_GROUPS,
-    SEND_DEVICE,
-    RECEIVE_DEVICE,
-    REMOVE_DEVICE,
-    REMOVE_LOCAL,
-    RENAME,
-    CREATE,
-    WRITE,
-    ACCESS,
-    GRANT,
-    REVOKE,
-    DELETE,
-    RECEIVE_CAPABILITY,
-    RESET_TRIPLES,
-    NOOP,
-    SECRET_INFO,
-    SIGN_ECDSA,
-    SSH_PUBLIC_DATA,
-    SIGNIN,
-    CONFIRM_SIGNIN,
+    NewTextSecret,
+    NewSshKey,
+    NewFileSecret,
+    NewGroup,
+    ImportSshKey,
+    ListSecrets,
+    ListDevices,
+    ListGroups,
+    SendDevice,
+    ReceiveDevice,
+    RemoveDevice,
+    RemoveLocal,
+    Rename,
+    Create,
+    Write,
+    Access,
+    Grant,
+    Revoke,
+    Delete,
+    ReceiveCapability,
+    ResetTriples,
+    NoOp,
+    SecretInfo,
+    SignEcdsa,
+    SshPublicData,
+    SignIn,
+    ConfirmSignin,
 }
 
 impl Command {
     pub fn to_string(&self) -> String {
         let res = match self {
-            Command::NEW_TEXT_SECRET => "new-text-secret",
-            Command::NEW_SSH_KEY => "new-ssh-key",
-            Command::NEW_FILE_SECRET => "new-file-secret",
-            Command::NEW_GROUP => "new-group",
-            Command::IMPORT_SSH_KEY => "import-ssh-key",
-            Command::LIST_SECRETS => "list-secrets",
-            Command::LIST_DEVICES => "list-devices",
-            Command::LIST_GROUPS => "list-groups",
-            Command::SEND_DEVICE => "send-device",
-            Command::RECEIVE_DEVICE => "receive-device",
-            Command::REMOVE_DEVICE => "remove-device",
-            Command::REMOVE_LOCAL => "remove-local",
-            Command::RENAME => "rename",
-            Command::CREATE => "create",
-            Command::WRITE => "write",
-            Command::ACCESS => "access",
-            Command::GRANT => "grant",
-            Command::REVOKE => "revoke",
-            Command::DELETE => "delete",
-            Command::RECEIVE_CAPABILITY => "receive-capability",
-            Command::RESET_TRIPLES => "reset-triples",
-            Command::NOOP => "noop-test",
-            Command::SECRET_INFO => "secret-info",
-            Command::SIGN_ECDSA => "sign-ecdsa",
-            Command::SSH_PUBLIC_DATA => "ssh-public-data",
-            Command::SIGNIN => "sigin",
-            Command::CONFIRM_SIGNIN => "confirm-signin",
+            Command::NewTextSecret => "new-text-secret",
+            Command::NewSshKey => "new-ssh-key",
+            Command::NewFileSecret => "new-file-secret",
+            Command::NewGroup => "new-group",
+            Command::ImportSshKey => "import-ssh-key",
+            Command::ListSecrets => "list-secrets",
+            Command::ListDevices => "list-devices",
+            Command::ListGroups => "list-groups",
+            Command::SendDevice => "send-device",
+            Command::ReceiveDevice => "receive-device",
+            Command::RemoveDevice => "remove-device",
+            Command::RemoveLocal => "remove-local",
+            Command::Rename => "rename",
+            Command::Create => "create",
+            Command::Write => "write",
+            Command::Access => "access",
+            Command::Grant => "grant",
+            Command::Revoke => "revoke",
+            Command::Delete => "delete",
+            Command::ReceiveCapability => "receive-capability",
+            Command::ResetTriples => "reset-triples",
+            Command::NoOp => "noop-test",
+            Command::SecretInfo => "secret-info",
+            Command::SignEcdsa => "sign-ecdsa",
+            Command::SshPublicData => "ssh-public-data",
+            Command::SignIn => "sigin",
+            Command::ConfirmSignin => "confirm-signin",
         };
         res.to_string()
     }
@@ -144,33 +138,33 @@ impl FromStr for Command {
     type Err = &'static str;
     fn from_str(command: &str) -> Result<Self, Self::Err> {
         match command {
-            "new-text-secret" => Ok(Command::NEW_TEXT_SECRET),
-            "new-ssh-key" => Ok(Command::NEW_SSH_KEY),
-            "new-file-secret" => Ok(Command::NEW_FILE_SECRET),
-            "new-group" => Ok(Command::NEW_GROUP),
-            "import-ssh-key" => Ok(Command::IMPORT_SSH_KEY),
-            "list-secrets" => Ok(Command::LIST_SECRETS),
-            "list-devices" => Ok(Command::LIST_DEVICES),
-            "list-groups" => Ok(Command::LIST_GROUPS),
-            "send-device" => Ok(Command::SEND_DEVICE),
-            "receive-device" => Ok(Command::RECEIVE_DEVICE),
-            "remove-device" => Ok(Command::REMOVE_DEVICE),
-            "remove-local" => Ok(Command::REMOVE_LOCAL),
-            "rename" => Ok(Command::RENAME),
-            "create" => Ok(Command::CREATE),
-            "write" => Ok(Command::WRITE),
-            "access" => Ok(Command::ACCESS),
-            "grant" => Ok(Command::GRANT),
-            "revoke" => Ok(Command::REVOKE),
-            "delete" => Ok(Command::DELETE),
-            "receive-capability" => Ok(Command::RECEIVE_CAPABILITY),
-            "reset-triples" => Ok(Command::RESET_TRIPLES),
-            "noop-test" => Ok(Command::NOOP),
-            "secret-info" => Ok(Command::SECRET_INFO),
-            "sign-ecdsa" => Ok(Command::SIGN_ECDSA),
-            "ssh-public-data" => Ok(Command::SSH_PUBLIC_DATA),
-            "sigin" => Ok(Command::SIGNIN),
-            "confirm-signin" => Ok(Command::CONFIRM_SIGNIN),
+            "new-text-secret" => Ok(Command::NewTextSecret),
+            "new-ssh-key" => Ok(Command::NewSshKey),
+            "new-file-secret" => Ok(Command::NewFileSecret),
+            "new-group" => Ok(Command::NewGroup),
+            "import-ssh-key" => Ok(Command::ImportSshKey),
+            "list-secrets" => Ok(Command::ListSecrets),
+            "list-devices" => Ok(Command::ListDevices),
+            "list-groups" => Ok(Command::ListGroups),
+            "send-device" => Ok(Command::SendDevice),
+            "receive-device" => Ok(Command::ReceiveDevice),
+            "remove-device" => Ok(Command::RemoveDevice),
+            "remove-local" => Ok(Command::RemoveLocal),
+            "rename" => Ok(Command::Rename),
+            "create" => Ok(Command::Create),
+            "write" => Ok(Command::Write),
+            "access" => Ok(Command::Access),
+            "grant" => Ok(Command::Grant),
+            "revoke" => Ok(Command::Revoke),
+            "delete" => Ok(Command::Delete),
+            "receive-capability" => Ok(Command::ReceiveCapability),
+            "reset-triples" => Ok(Command::ResetTriples),
+            "noop-test" => Ok(Command::NoOp),
+            "secret-info" => Ok(Command::SecretInfo),
+            "sign-ecdsa" => Ok(Command::SignEcdsa),
+            "ssh-public-data" => Ok(Command::SshPublicData),
+            "sigin" => Ok(Command::SignIn),
+            "confirm-signin" => Ok(Command::ConfirmSignin),
             _ => Err("Command not supported"),
         }
     }
@@ -307,11 +301,7 @@ impl Runkr {
     }
 
     // Get stream response message and parse the result of the operation if it was successful
-    fn handle_response(
-        &mut self,
-        command_name: Command,
-        response: String,
-    ) -> Result<Response, String> {
+    fn handle_response(&mut self, response: String) -> Result<Response, String> {
         match parse_rpcjson_response::<JsonProtocolResponse<BunkrResult>>(response.as_str()) {
             Ok(bunkr_result) => match bunkr_result.error {
                 Some(err) => return Err(err),
@@ -347,7 +337,7 @@ impl Runkr {
                 match self.client.disconnect() {
                     _ => {}
                 }
-                return self.handle_response(command_name, response);
+                return self.handle_response(response);
             }
             Err(err) => {
                 match self.client.disconnect() {
@@ -372,7 +362,7 @@ impl Runkr {
         content: &str,
     ) -> Result<Response, String> {
         self.exec_command(
-            Command::NEW_TEXT_SECRET,
+            Command::NewTextSecret,
             vec![secret_name.to_string(), content.to_string()],
         )
     }
@@ -386,7 +376,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn new_ssh_key(&mut self, secret_name: &str) -> Result<Response, String> {
-        self.exec_command(Command::NEW_SSH_KEY, vec![secret_name.to_string()])
+        self.exec_command(Command::NewSshKey, vec![secret_name.to_string()])
     }
 
     /// new_file_secret creates a secret with the content of an specified file
@@ -403,7 +393,7 @@ impl Runkr {
         file_path: &str,
     ) -> Result<Response, String> {
         self.exec_command(
-            Command::NEW_FILE_SECRET,
+            Command::NewFileSecret,
             vec![secret_name.to_string(), file_path.to_string()],
         )
     }
@@ -417,7 +407,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn new_group(&mut self, group_name: &str) -> Result<Response, String> {
-        self.exec_command(Command::NEW_GROUP, vec![group_name.to_string()])
+        self.exec_command(Command::NewGroup, vec![group_name.to_string()])
     }
 
     /// import_ssh_key uploads an ecdsa key to Bunkr
@@ -434,7 +424,7 @@ impl Runkr {
         file_path: &str,
     ) -> Result<Response, String> {
         self.exec_command(
-            Command::IMPORT_SSH_KEY,
+            Command::ImportSshKey,
             vec![secret_name.to_string(), file_path.to_string()],
         )
     }
@@ -459,7 +449,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn list_secrets(&mut self) -> Result<Response, String> {
-        self.exec_command(Command::LIST_SECRETS, vec![])
+        self.exec_command(Command::ListSecrets, vec![])
     }
 
     /// list_devices retrieves Bunkr attached devices
@@ -472,7 +462,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn list_devices(&mut self) -> Result<Response, String> {
-        self.exec_command(Command::LIST_DEVICES, vec![])
+        self.exec_command(Command::ListDevices, vec![])
     }
 
     /// list_groups retrieves Bunkr attached devices
@@ -485,7 +475,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn list_groups(&mut self) -> Result<Response, String> {
-        self.exec_command(Command::LIST_GROUPS, vec![])
+        self.exec_command(Command::ListGroups, vec![])
     }
 
     /// send_device generates a device sharing link/s
@@ -500,8 +490,8 @@ impl Runkr {
     /// ```
     pub fn send_device(&mut self, device_name: Option<&str>) -> Result<Response, String> {
         match device_name {
-            Some(name) => self.exec_command(Command::SEND_DEVICE, vec![name.to_string()]),
-            None => self.exec_command(Command::SEND_DEVICE, vec![]),
+            Some(name) => self.exec_command(Command::SendDevice, vec![name.to_string()]),
+            None => self.exec_command(Command::SendDevice, vec![]),
         }
     }
 
@@ -514,7 +504,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn receive_device(&mut self, url: &str) -> Result<Response, String> {
-        self.exec_command(Command::RECEIVE_DEVICE, vec![url.to_string()])
+        self.exec_command(Command::ReceiveDevice, vec![url.to_string()])
     }
 
     /// remove_device removes a device link from Bunkr
@@ -526,7 +516,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn remove_device(&mut self, device_name: &str) -> Result<Response, String> {
-        self.exec_command(Command::REMOVE_DEVICE, vec![device_name.to_string()])
+        self.exec_command(Command::RemoveDevice, vec![device_name.to_string()])
     }
 
     /// remove_local removes a secret reference from Bunkr (it does not delete the secret)
@@ -538,7 +528,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn remove_local(&mut self, secret_name: &str) -> Result<Response, String> {
-        self.exec_command(Command::REMOVE_LOCAL, vec![secret_name.to_string()])
+        self.exec_command(Command::RemoveLocal, vec![secret_name.to_string()])
     }
 
     /// rename a secret, group or device
@@ -551,7 +541,7 @@ impl Runkr {
     /// ```
     pub fn rename(&mut self, old_name: &str, new_name: &str) -> Result<Response, String> {
         self.exec_command(
-            Command::RENAME,
+            Command::Rename,
             vec![old_name.to_string(), new_name.to_string()],
         )
     }
@@ -569,7 +559,10 @@ impl Runkr {
         secret_name: &str,
         secret_type: SecretType,
     ) -> Result<Response, String> {
-        self.exec_command(Command::CREATE, vec![secret_type.to_string()])
+        self.exec_command(
+            Command::Create,
+            vec![secret_name.to_string(), secret_type.to_string()],
+        )
     }
 
     /// write dumps content into the specified secret
@@ -588,8 +581,18 @@ impl Runkr {
         content_type: Option<ContentType>,
     ) -> Result<Response, String> {
         match content_type {
-            Some(t) => self.exec_command(Command::WRITE, vec![t.to_string()]),
-            None => self.exec_command(Command::WRITE, vec![ContentType::B64.to_string()]),
+            Some(t) => self.exec_command(
+                Command::Write,
+                vec![secret_name.to_string(), t.to_string(), content.to_string()],
+            ),
+            None => self.exec_command(
+                Command::Write,
+                vec![
+                    secret_name.to_string(),
+                    ContentType::B64.to_string(),
+                    content.to_string(),
+                ],
+            ),
         }
     }
 
@@ -613,7 +616,7 @@ impl Runkr {
         match mode {
             AccessMode::File => match fpath {
                 Some(path) => self.exec_command(
-                    Command::ACCESS,
+                    Command::Access,
                     vec![
                         secret_name.to_string(),
                         AccessMode::File.to_string(),
@@ -623,7 +626,7 @@ impl Runkr {
                 None => Err("A file path must be specified for File mode".to_string()),
             },
             _ => self.exec_command(
-                Command::ACCESS,
+                Command::Access,
                 vec![secret_name.to_string(), mode.to_string()],
             ),
         }
@@ -647,7 +650,7 @@ impl Runkr {
     ) -> Result<Response, String> {
         match admin {
             true => self.exec_command(
-                Command::GRANT,
+                Command::Grant,
                 vec![
                     target.to_string(),
                     secret_name.to_string(),
@@ -655,7 +658,7 @@ impl Runkr {
                 ],
             ),
             false => self.exec_command(
-                Command::GRANT,
+                Command::Grant,
                 vec![target.to_string(), secret_name.to_string()],
             ),
         }
@@ -671,7 +674,7 @@ impl Runkr {
     /// ```
     pub fn revoke(&mut self, target: &str, secret_name: &str) -> Result<Response, String> {
         self.exec_command(
-            Command::REVOKE,
+            Command::Revoke,
             vec![target.to_string(), secret_name.to_string()],
         )
     }
@@ -685,7 +688,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn delete(&mut self, secret_name: &str) -> Result<Response, String> {
-        self.exec_command(Command::DELETE, vec![secret_name.to_string()])
+        self.exec_command(Command::Delete, vec![secret_name.to_string()])
     }
 
     /// receive_capability, load a capability into your Bunkr
@@ -697,7 +700,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn receive_capability(&mut self, url: &str) -> Result<Response, String> {
-        self.exec_command(Command::RECEIVE_CAPABILITY, vec![url.to_string()])
+        self.exec_command(Command::ReceiveCapability, vec![url.to_string()])
     }
 
     /// reset_triples launches a reseting operation to synchronize the triples in a secret coalition
@@ -709,7 +712,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn reset_triples(&mut self, secret_name: &str) -> Result<Response, String> {
-        self.exec_command(Command::RESET_TRIPLES, vec![secret_name.to_string()])
+        self.exec_command(Command::ResetTriples, vec![secret_name.to_string()])
     }
 
     /// noop performs a health status operation
@@ -721,7 +724,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn noop(&mut self, secret_name: &str) -> Result<Response, String> {
-        self.exec_command(Command::NOOP, vec![secret_name.to_string()])
+        self.exec_command(Command::NoOp, vec![secret_name.to_string()])
     }
 
     /// secret_info return public secret info for the specified secret
@@ -733,7 +736,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn secret_info(&mut self, secret_name: &str) -> Result<Response, String> {
-        self.exec_command(Command::SECRET_INFO, vec![secret_name.to_string()])
+        self.exec_command(Command::SecretInfo, vec![secret_name.to_string()])
     }
 
     /// sign_ecdsa requests a signing with the specified secret content
@@ -752,7 +755,7 @@ impl Runkr {
         hash_content: &str,
     ) -> Result<Response, String> {
         self.exec_command(
-            Command::SIGN_ECDSA,
+            Command::SignEcdsa,
             vec![secret_name.to_string(), hash_content.to_string()],
         )
     }
@@ -770,7 +773,7 @@ impl Runkr {
     /// }
     /// ```
     pub fn ssh_public_data(&mut self, secret_name: &str) -> Result<Response, String> {
-        self.exec_command(Command::SSH_PUBLIC_DATA, vec![secret_name.to_string()])
+        self.exec_command(Command::SshPublicData, vec![secret_name.to_string()])
     }
 
     /// sigin performs a Bunkr signin process
@@ -783,7 +786,7 @@ impl Runkr {
     /// ```
     pub fn signin(&mut self, email: &str, device_name: &str) -> Result<Response, String> {
         self.exec_command(
-            Command::SIGNIN,
+            Command::SignIn,
             vec![email.to_string(), device_name.to_string()],
         )
     }
@@ -798,7 +801,7 @@ impl Runkr {
     /// ```
     pub fn confirm_signin(&mut self, email: &str, code: &str) -> Result<Response, String> {
         self.exec_command(
-            Command::CONFIRM_SIGNIN,
+            Command::ConfirmSignin,
             vec![email.to_string(), code.to_string()],
         )
     }
@@ -811,7 +814,7 @@ mod tests {
     use serde_json::Value;
     use std::fs::remove_file;
     use std::io::prelude::*;
-    use std::os::unix::net::{UnixListener, UnixStream};
+    use std::os::unix::net::UnixListener;
     use std::thread;
     use std::time;
 
@@ -858,13 +861,15 @@ mod tests {
         let mut runkr = Runkr::new(TMP_SOCK);
         let res = runkr
             .exec_command(
-                Command::CREATE,
+                Command::Create,
                 vec!["foo".to_string(), "foo_content".to_string()],
             )
             .unwrap();
         assert_eq!(res, "Foo".to_string());
-        runkr.exec_command(Command::NOOP, vec!["end".to_string()]);
-        t.join();
+        runkr
+            .exec_command(Command::NoOp, vec!["end".to_string()])
+            .unwrap_or_default();
+        t.join().unwrap_or_default();
         remove_file(TMP_SOCK).unwrap();
     }
 }
